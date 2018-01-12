@@ -133,7 +133,7 @@ class RwhoisRequest():
             response += RwhoisRequest.contacts(sisu['tech_contacts'])
 
             # Registrar
-                response += RwhoisRequest.section('Registrar:')
+            response += RwhoisRequest.section('Registrar:')
             response += RwhoisRequest.print('name:',sisu['registrar'])
             response += RwhoisRequest.print('url:',sisu['registrar_website'])
             response += RwhoisRequest.print('phone:',sisu['registrar_phone'])
