@@ -39,6 +39,9 @@ class RwhoisRequest():
     # TODO: implement discolese  in rwhois json?
         disclosed = "Not Disclosed - Visit www.internet.ee for webbased WHOIS"
 
+        debug_ip = 0
+        debug_src = ""
+
         def __init__(self, name):
             self.name = name
             _logger.debug("RwhoisRequest: init {}".format(self.name))
@@ -96,8 +99,11 @@ class RwhoisRequest():
             response_time = rwhois_response.headers['X-Runtime']
             response_date = rwhois_response.headers['Date']
 
+            response = b""
+            _logger.debug("Debug_ip:{}".format(RwhoisRequest.debug_ip))
             # Metrics line
-            response = bytes("{}: {} {} time: {} @ {}\n".format(thread_name, domain_name, MetricData.finish, response_time, response_date), 'utf-8')
+            if RwhoisRequest.debug_ip == 1:
+                response += bytes("{}: {} {} time: {} @ {}\n".format(thread_name, domain_name, MetricData.finish, response_time, response_date), 'utf-8')
 
             response += bytes("Estonia .ee Top Level Domain WHOIS server \n \nDomain: \n", 'utf-8')
             response += RwhoisRequest.print('name:',sisu['name'])
@@ -160,7 +166,7 @@ class RwhoisRequest():
             # Ugly hack to run tests
             if thread_name == "test_thread":
                _logger.debug(sys.getsizeof(response))
-               if sys.getsizeof(response) == 1188:
+               if sys.getsizeof(response) == 1118:
                     return "midagi"
 
             return response
@@ -177,6 +183,7 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
         data_str = str(data, 'utf-8')
         cur_thread = threading.current_thread()
         _logger.debug("thread:  {}".format(cur_thread))
+        _logger.debug("client:  {}".format(self.client_address))
 
 
         response = RwhoisRequest.make(data_str,cur_thread)
@@ -213,6 +220,13 @@ class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     def verify_request(self, request, client_address):
         self.logger.debug('verify_request(%s, %s)',
                           request, client_address)
+        # TODO: configurable debug ip dict
+        if client_address[0] == RwhoisRequest.debug_src:
+            _logger.debug("request from debug ip")
+            RwhoisRequest.debug_ip=1
+        else:
+            RwhoisRequest.debug_ip=0
+
 
         return socketserver.TCPServer.verify_request(
             self, request, client_address,
@@ -270,6 +284,19 @@ def parse_args(args):
         type=int,
         metavar="INT")
     parser.add_argument(
+        '-l',
+        '--listen',
+        '--host',
+        dest="h",
+        help="host to listen on",
+        default="127.0.0.1")
+    parser.add_argument(
+        '-d',
+        '--debug',
+        dest="d",
+        help="debug ip",
+        default="127.0.0.1")
+    parser.add_argument(
         '-v',
         '--verbose',
         dest="loglevel",
@@ -305,7 +332,8 @@ def main(args):
     """
     args = parse_args(args)
     setup_logging(args.loglevel)
-    HOST, PORT = "localhost", args.p
+    RwhoisRequest.debug_src=args.d
+    HOST, PORT = args.h, args.p
 
     server = ThreadedTCPServer((HOST, PORT), ThreadedTCPRequestHandler)
     ip, port = server.server_address
