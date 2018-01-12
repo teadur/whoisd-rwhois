@@ -36,7 +36,8 @@ _logger = logging.getLogger(__name__)
 
 class WhoisResource(Resource):
    actions = {
-        'v1': {'method': 'GET', 'url': '/v1/{}.json'}
+        'v1': {'method': 'GET', 'url': '/v1/{}.json'},
+        'v2': {'method': 'GET', 'url': '/v2/{}.json'}
 
    }
 
@@ -58,20 +59,23 @@ class RwhoisRequest():
             _logger.debug(domain_name)
 
             # restful-whois
-            default_params = {'access_token': 'valid-token'}
+            default_params = {}
             rwhois_api = API(
                 api_root_url='https://rwhois.internet.ee/', params=default_params,
                 json_encode_body=True
             )
             rwhois_api.add_resource(resource_name='domain', resource_class=WhoisResource)
             rwhois_response = rwhois_api.domain.v1(domain_name, body=None, params={}, headers={})
+            # rwhois_response = rwhois_api.domain.v2(domain_name, body=None, params={'access_token': 'valid-token'}, headers={})
 
             sisu = rwhois_response.body
+            response_time = rwhois_response.headers['X-Runtime']
+            response_date = rwhois_response.headers['Date']
 
             # TODO: implement discolese  in rwhois json?
             sisu['disclose'] = "Not Disclosed - Visit www.internet.ee for webbased WHOIS"
 
-            response = bytes("{}: {} {}\n".format(cur_thread.name, domain_name, MetricData.finish), 'utf-8')
+            response = bytes("{}: {} {} time: {} @ {}\n".format(cur_thread.name, domain_name, MetricData.finish, response_time, response_date), 'utf-8')
             response += bytes("Estonia .ee Top Level Domain WHOIS server \n \nDomain: \n", 'utf-8')
             response += bytes("{:<12}{}\n".format('name:', sisu['name']), 'utf-8')
 
