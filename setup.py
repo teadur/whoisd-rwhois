@@ -12,14 +12,13 @@ import sys
 from setuptools import setup
 
 # Add here console scripts and other entry points in ini-style format
-entry_points = """
+entry_points ="""
 [console_scripts]
 # script_name = whoisd_rwhois.module:function
 # For example:
 # fibonacci = whoisd_rwhois.skeleton:run
 whoisd = whoisd_rwhois.whoisd:run
 """
-whoisd = whoisd_rwhois.whoisd:run
 
 def setup_package():
     needs_sphinx = {'build_sphinx', 'upload_docs'}.intersection(sys.argv)

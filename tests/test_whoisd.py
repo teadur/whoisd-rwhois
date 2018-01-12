@@ -10,3 +10,4 @@ __license__ = "mit"
 
 def test_RwhoisRequest():
     assert RwhoisRequest.make("nimi.ee", "test_thread") == "midagi"
+    assert RwhoisRequest.status("internet.ee") == "ok (paid and in zone)"

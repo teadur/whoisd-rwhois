@@ -44,20 +44,31 @@ class RwhoisRequest():
             _logger.debug('RwhoisRequest:')
             _logger.debug(self.name)
 
+
+
+        def get(domain_name):
+
+            default_params = {}
+            rwhois_api = API(
+                api_root_url='https://rwhois.internet.ee/', params=default_params,
+                json_encode_body=True
+            )
+
+            rwhois_api.add_resource(resource_name='domain', resource_class=WhoisResource)
+            rwhois_response = rwhois_api.domain.v1(domain_name, body=None, params={}, headers={})
+
+            return rwhois_response
+
+        def status(domain_name):
+            return RwhoisRequest.get(domain_name).body['status'][0]
+
         def make(domain_name,cur_thread):
             thread_name = str(cur_thread or cur_thread.name)
 
             _logger.debug('RwhoisRequest.make:')
             _logger.debug(domain_name)
 
-            # restful-whois
-            default_params = {}
-            rwhois_api = API(
-                api_root_url='https://rwhois.internet.ee/', params=default_params,
-                json_encode_body=True
-            )
-            rwhois_api.add_resource(resource_name='domain', resource_class=WhoisResource)
-            rwhois_response = rwhois_api.domain.v1(domain_name, body=None, params={}, headers={})
+            rwhois_response = RwhoisRequest.get(domain_name)
             # rwhois_response = rwhois_api.domain.v2(domain_name, body=None, params={'access_token': 'valid-token'}, headers={})
 
             sisu = rwhois_response.body
