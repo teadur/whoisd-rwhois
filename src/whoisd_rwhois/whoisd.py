@@ -36,6 +36,7 @@ class MetricData():
 
 class RwhoisRequest():
 
+    # TODO: implement discolese  in rwhois json?
         disclosed = "Not Disclosed - Visit www.internet.ee for webbased WHOIS"
 
         def __init__(self, name):
@@ -64,9 +65,15 @@ class RwhoisRequest():
             for contact in contacts:
                 response = bytes("{:<12}{}\n".format('name:', contact['name']), 'utf-8')
                 response += bytes("{:<12}{}\n".format('email:', RwhoisRequest.disclosed), 'utf-8')
-                response += bytes("{:<12}{}\n".format('changed:', contact['changed'].replace("T", " ").replace("+", " +")),
-                                  'utf-8')
+                response += RwhoisRequest.changed(contact['changed'])
+
             return response
+
+        def changed(changed):
+
+            response = bytes("{:<12}{}\n".format('changed:', changed.replace("T", " ").replace("+", " +")), 'utf-8')
+            return response
+
 
         def make(domain_name,cur_thread):
             thread_name = str(cur_thread or cur_thread.name)
@@ -80,21 +87,18 @@ class RwhoisRequest():
             response_time = rwhois_response.headers['X-Runtime']
             response_date = rwhois_response.headers['Date']
 
-            # TODO: implement discolese  in rwhois json?
-            sisu['disclose'] = "Not Disclosed - Visit www.internet.ee for webbased WHOIS"
-
+            # Metrics line
             response = bytes("{}: {} {} time: {} @ {}\n".format(thread_name, domain_name, MetricData.finish, response_time, response_date), 'utf-8')
+
             response += bytes("Estonia .ee Top Level Domain WHOIS server \n \nDomain: \n", 'utf-8')
             response += bytes("{:<12}{}\n".format('name:', sisu['name']), 'utf-8')
 
             # handle multiple status entries
-            for x in sisu['status']:
-                response += bytes("{:<12}{}\n".format('status:', x), 'utf-8')
+            for status in sisu['status']:
+                response += bytes("{:<12}{}\n".format('status:', status), 'utf-8')
 
-            response += bytes(
-                "{:<12}{}\n".format('registered:', sisu['registered'].replace("T", " ").replace("+", " +")), 'utf-8')
-            response += bytes("{:<12}{}\n".format('changed:', sisu['changed'].replace("T", " ").replace("+", " +")),
-                              'utf-8')
+            response += bytes("{:<12}{}\n".format('registered:', sisu['registered'].replace("T", " ").replace("+", " +")), 'utf-8')
+            response += RwhoisRequest.changed(sisu['changed'])
             response += bytes("{:<12}{}\n".format('expire:', sisu['expire']), 'utf-8')
             response += bytes("{:<12}{}\n".format('outzone:', str(sisu['outzone'] or '')), 'utf-8')
             response += bytes("{:<12}{}\n\n".format('delete:', str(sisu['delete'] or '')), 'utf-8')
@@ -105,9 +109,8 @@ class RwhoisRequest():
                 response += bytes("{:<12}{}\n".format('org id:', sisu['registrant_reg_no']), 'utf-8')
                 response += bytes("{:<12}{}\n".format('country:', sisu['registrant_ident_country_code']), 'utf-8')
             response += bytes("{:<12}{}\n".format('email:', RwhoisRequest.disclosed), 'utf-8')
-            response += bytes(
-                "{:<12}{}\n".format('changed:', sisu['registrant_changed'].replace("T", " ").replace("+", " +")),
-                'utf-8')
+            response += RwhoisRequest.changed(sisu['registrant_changed'])
+
 
             # Administrative contacts
             response += bytes("\n{}\n".format('Administrative contact:'), 'utf-8')
@@ -130,18 +133,16 @@ class RwhoisRequest():
             response += bytes("\n{}\n".format('Name servers:'), 'utf-8')
             for nameserver in sisu['nameservers']:
                 response += bytes("{:<12}{}\n".format('nserver:', nameserver), 'utf-8')
-            response += bytes(
-                "{:<12}{}\n".format('changed:', sisu['nameservers_changed'].replace("T", " ").replace("+", " +")),
-                'utf-8')
+
+            response += RwhoisRequest.changed(sisu['nameservers_changed'])
 
             # DNSSec Keys
             if sisu['dnssec_keys'] != []:
                 response += bytes("\n{}\n".format('DNNSEC:'), 'utf-8')
                 for key in sisu['dnssec_keys']:
                     response += bytes("{:<12}{}\n".format('dnskey:', key), 'utf-8')
-                response += bytes(
-                    "{:<12}{}\n".format('changed:', sisu['dnssec_changed'].replace("T", " ").replace("+", " +")),
-                    'utf-8')
+                response += RwhoisRequest.changed(sisu['dnssec_changed'])
+
 
             # Footer
             response += bytes("\nEstonia .ee Top Level Domain WHOIS server\nMore information at https://internet.ee",
@@ -203,6 +204,7 @@ class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     def verify_request(self, request, client_address):
         self.logger.debug('verify_request(%s, %s)',
                           request, client_address)
+        
         return socketserver.TCPServer.verify_request(
             self, request, client_address,
         )
