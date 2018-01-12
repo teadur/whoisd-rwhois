@@ -5,16 +5,15 @@
 sudo: false
 language: python
 python:
-  - "3.3"
   - "3.4"
   - "3.5"
   - "3.6"
+  - "3.7-dev"  # 3.7 development branch
+  - "nightly"
 virtualenv:
   system_site_packages: false
 env:
   matrix:
-    - DISTRIB="conda" PYTHON_VERSION="3.3" COVERAGE="false"
-    - DISTRIB="conda" PYTHON_VERSION="3.4" COVERAGE="false"
     - DISTRIB="conda" PYTHON_VERSION="3.6" COVERAGE="true"
     - DISTRIB="ubuntu" PYTHON_VERSION="3.6" COVERAGE="true"
 
