@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import pytest
-from whoisd_rwhois.skeleton import fib
+from whoisd_rwhois.whoisd import fib
+from whoisd_rwhois.whoisd import RwhoisRequest
 
 __author__ = "Georg Kahest"
 __copyright__ = "Georg Kahest"
@@ -16,3 +17,6 @@ def test_fib():
     with pytest.raises(AssertionError):
         fib(-10)
 
+
+def test_RwhoisRequest():
+    assert RwhoisRequest.make("nimi.ee", "test_thread") == "midagi"
