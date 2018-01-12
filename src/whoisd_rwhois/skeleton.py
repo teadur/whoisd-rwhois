@@ -32,17 +32,118 @@ __copyright__ = "Georg Kahest"
 __license__ = "mit"
 
 _logger = logging.getLogger(__name__)
-_count = 0
 
 
 class WhoisResource(Resource):
    actions = {
-        'whois': {'method': 'GET', 'url': '{}.json'}
+        'v1': {'method': 'GET', 'url': '/v1/{}.json'}
 
    }
 
 class MetricData():
     finish = 0
+
+class RwhoisRequest():
+        
+        kind = 'canine'         # class variable shared by all instances
+
+        def __init__(self, name):
+            self.name = name    # instance variable unique to each instance
+                        
+            _logger.debug('RwhoisRequest:')
+            _logger.debug(self.name)
+
+        def make(domain_name,cur_thread):
+            _logger.debug('RwhoisRequest.make:')
+            _logger.debug(domain_name)
+
+            # restful-whois
+            default_params = {'access_token': 'valid-token'}
+            rwhois_api = API(
+                api_root_url='https://rwhois.internet.ee/', params=default_params,
+                json_encode_body=True
+            )
+            rwhois_api.add_resource(resource_name='domain', resource_class=WhoisResource)
+            rwhois_response = rwhois_api.domain.v1(domain_name, body=None, params={}, headers={})
+
+            sisu = rwhois_response.body
+
+            # TODO: implement discolese  in rwhois json?
+            sisu['disclose'] = "Not Disclosed - Visit www.internet.ee for webbased WHOIS"
+
+            response = bytes("{}: {} {}\n".format(cur_thread.name, domain_name, MetricData.finish), 'utf-8')
+            response += bytes("Estonia .ee Top Level Domain WHOIS server \n \nDomain: \n", 'utf-8')
+            response += bytes("{:<12}{}\n".format('name:', sisu['name']), 'utf-8')
+
+            # handle multiple status entries
+            for x in sisu['status']:
+                response += bytes("{:<12}{}\n".format('status:', x), 'utf-8')
+
+            response += bytes(
+                "{:<12}{}\n".format('registered:', sisu['registered'].replace("T", " ").replace("+", " +")), 'utf-8')
+            response += bytes("{:<12}{}\n".format('changed:', sisu['changed'].replace("T", " ").replace("+", " +")),
+                              'utf-8')
+            response += bytes("{:<12}{}\n".format('expire:', sisu['expire']), 'utf-8')
+            response += bytes("{:<12}{}\n".format('outzone:', str(sisu['outzone'] or '')), 'utf-8')
+            response += bytes("{:<12}{}\n\n".format('delete:', str(sisu['delete'] or '')), 'utf-8')
+
+            # Registrant
+            response += bytes("{}\n{:<12}{}\n".format('Registrant:', 'name:', sisu['registrant']), 'utf-8')
+            if sisu['registrant_kind'] == "org":
+                response += bytes("{:<12}{}\n".format('org id:', sisu['registrant_reg_no']), 'utf-8')
+                response += bytes("{:<12}{}\n".format('country:', sisu['registrant_ident_country_code']), 'utf-8')
+            response += bytes("{:<12}{}\n".format('email:', sisu['disclose']), 'utf-8')
+            response += bytes(
+                "{:<12}{}\n".format('changed:', sisu['registrant_changed'].replace("T", " ").replace("+", " +")),
+                'utf-8')
+
+            # Administrative contacts
+            response += bytes("\n{}\n".format('Administrative contact:'), 'utf-8')
+            for contact in sisu['admin_contacts']:
+                response += bytes("{:<12}{}\n".format('name:', contact['name']), 'utf-8')
+                response += bytes("{:<12}{}\n".format('email:', sisu['disclose']), 'utf-8')
+                response += bytes("{:<12}{}\n".format('changed:', contact['changed'].replace("T", " ").replace("+", " +")),
+                                  'utf-8')
+
+            # Tech contacs
+            response += bytes("\n{}\n".format('Technical contact:'), 'utf-8')
+            for contact in sisu['tech_contacts']:
+                response += bytes("{:<12}{}\n".format('name:', contact['name']), 'utf-8')
+                response += bytes("{:<12}{}\n".format('email:', sisu['disclose']), 'utf-8')
+                response += bytes("{:<12}{}\n".format('changed:', contact['changed'].replace("T", " ").replace("+", " +")),
+                                  'utf-8')
+
+            # Registrar
+            response += bytes("\n{}\n".format('Registrar:'), 'utf-8')
+            response += bytes("{:<12}{}\n".format('name:', sisu['registrar']), 'utf-8')
+            response += bytes("{:<12}{}\n".format('url:', sisu['registrar_website']), 'utf-8')
+            response += bytes("{:<12}{}\n".format('phone:', sisu['registrar_phone']), 'utf-8')
+            response += bytes(
+                "{:<12}{}\n".format('changed:', sisu['registrar_changed'].replace("T", " ").replace("+", " +")),
+                'utf-8')
+
+            # Name servers
+            response += bytes("\n{}\n".format('Name servers:'), 'utf-8')
+            for nameserver in sisu['nameservers']:
+                response += bytes("{:<12}{}\n".format('nserver:', nameserver), 'utf-8')
+            response += bytes(
+                "{:<12}{}\n".format('changed:', sisu['nameservers_changed'].replace("T", " ").replace("+", " +")),
+                'utf-8')
+
+            # DNSSec Keys
+            if sisu['dnssec_keys'] != []:
+                response += bytes("\n{}\n".format('DNNSEC:'), 'utf-8')
+                for key in sisu['dnssec_keys']:
+                    response += bytes("{:<12}{}\n".format('dnskey:', key), 'utf-8')
+                response += bytes(
+                    "{:<12}{}\n".format('changed:', sisu['dnssec_changed'].replace("T", " ").replace("+", " +")),
+                    'utf-8')
+
+            # Footer
+            response += bytes("\nEstonia .ee Top Level Domain WHOIS server\nMore information at https://internet.ee",
+                              'utf-8')
+
+            return response
 
 class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
 
@@ -59,84 +160,13 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
         _logger.debug(cur_thread)
 
 
+        response = RwhoisRequest.make(data_str,cur_thread)
 
-        # restful-whois
-        default_params = {'access_token': 'valid-token'}
-        rwhois_api = API(
-            api_root_url='https://rwhois.internet.ee/v1/', params=default_params,
-            json_encode_body=True
-        )
-        rwhois_api.add_resource(resource_name='domain', resource_class=WhoisResource)
-        rwhois_response = rwhois_api.domain.whois(data_str, body=None, params={}, headers={})
         # try:
         #    rwhois_response = rwhois_api.domain.whois(data_str, body=None, params={}, headers={})
         # except Exception as e:
         #    z = e  # representation: "<exceptions.ZeroDivisionError instance at 0x817426c>"
         #    _logger.debug(z)  # output: "integer division or modulo by zero"
-
-        sisu = rwhois_response.body
-
-        # TODO: implement discolese  in rwhois json?
-        sisu['disclose'] = "Not Disclosed - Visit www.internet.ee for webbased WHOIS"
-
-        response = bytes("{}: {} {}\n".format(cur_thread.name, data_str, MetricData.finish), 'utf-8')
-        response += bytes("Estonia .ee Top Level Domain WHOIS server \n \nDomain: \n", 'utf-8')
-        response += bytes("{:<12}{}\n".format('name:',sisu['name']), 'utf-8')
-
-        # handle multiple status entries
-        for x in sisu['status']:
-            response += bytes("{:<12}{}\n".format('status:',x), 'utf-8')
-
-        response += bytes("{:<12}{}\n".format('registered:',sisu['registered'].replace("T", " ").replace("+", " +")), 'utf-8')
-        response += bytes("{:<12}{}\n".format('changed:',sisu['changed'].replace("T", " ").replace("+", " +")), 'utf-8')
-        response += bytes("{:<12}{}\n".format('expire:',sisu['expire']), 'utf-8')
-        response += bytes("{:<12}{}\n".format('outzone:',str(sisu['outzone'] or '')), 'utf-8')
-        response += bytes("{:<12}{}\n\n".format('delete:',str(sisu['delete'] or '')), 'utf-8')
-
-        # Registrant
-        response += bytes("{}\n{:<12}{}\n".format('Registrant:','name:',sisu['registrant']), 'utf-8')
-        if sisu['registrant_kind'] == "org":
-           response += bytes("{:<12}{}\n".format('org id:',sisu['registrant_reg_no']), 'utf-8')
-           response += bytes("{:<12}{}\n".format('country:', sisu['registrant_ident_country_code']), 'utf-8')
-        response += bytes("{:<12}{}\n".format('email:', sisu['disclose']), 'utf-8')
-        response += bytes("{:<12}{}\n".format('changed:', sisu['registrant_changed'].replace("T", " ").replace("+", " +")), 'utf-8')
-
-        # Administrative contacts
-        response += bytes("\n{}\n".format('Administrative contact:'), 'utf-8')
-        for x in sisu['admin_contacts']:
-            response += bytes("{:<12}{}\n".format('name:',x['name']), 'utf-8')
-            response += bytes("{:<12}{}\n".format('email:', sisu['disclose']), 'utf-8')
-            response += bytes("{:<12}{}\n".format('changed:', x['changed'].replace("T", " ").replace("+", " +")), 'utf-8')
-
-        # Tech contacs
-        response += bytes("\n{}\n".format('Technical contact:'), 'utf-8')
-        for x in sisu['tech_contacts']:
-            response += bytes("{:<12}{}\n".format('name:',x['name']), 'utf-8')
-            response += bytes("{:<12}{}\n".format('email:', sisu['disclose']), 'utf-8')
-            response += bytes("{:<12}{}\n".format('changed:', x['changed'].replace("T", " ").replace("+", " +")), 'utf-8')
-
-        # Registrar
-        response += bytes("\n{}\n".format('Registrar:'), 'utf-8')
-        response += bytes("{:<12}{}\n".format('name:', sisu['registrar']), 'utf-8')
-        response += bytes("{:<12}{}\n".format('url:', sisu['registrar_website']), 'utf-8')
-        response += bytes("{:<12}{}\n".format('phone:', sisu['registrar_phone']), 'utf-8')
-        response += bytes("{:<12}{}\n".format('changed:', sisu['registrar_changed'].replace("T", " ").replace("+", " +")), 'utf-8')
-
-        # Name servers
-        response += bytes("\n{}\n".format('Name servers:'), 'utf-8')
-        for x in sisu['nameservers']:
-            response += bytes("{:<12}{}\n".format('nserver:',x), 'utf-8')
-        response += bytes("{:<12}{}\n".format('changed:', sisu['nameservers_changed'].replace("T", " ").replace("+", " +")), 'utf-8')
-
-        # DNSSec Keys
-        if sisu['dnssec_keys'] != []:
-            response += bytes("\n{}\n".format('DNNSEC:'), 'utf-8')
-            for x in sisu['dnssec_keys']:
-                    response += bytes("{:<12}{}\n".format('dnskey:',x), 'utf-8')
-            response += bytes("{:<12}{}\n".format('changed:', sisu['dnssec_changed'].replace("T", " ").replace("+", " +")), 'utf-8')
-
-        # Footer
-        response += bytes("\nEstonia .ee Top Level Domain WHOIS server\nMore information at https://internet.ee", 'utf-8')
 
         # Send response
         self.request.sendall(response)
