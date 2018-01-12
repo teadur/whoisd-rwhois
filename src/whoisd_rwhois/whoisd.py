@@ -36,6 +36,8 @@ class MetricData():
 
 class RwhoisRequest():
 
+        disclosed = "Not Disclosed - Visit www.internet.ee for webbased WHOIS"
+
         def __init__(self, name):
             self.name = name
             _logger.debug("RwhoisRequest: init {}".format(self.name))
@@ -57,11 +59,19 @@ class RwhoisRequest():
         def status(domain_name):
             return RwhoisRequest.get(domain_name).body['status'][0]
 
+        def contacts(contacts):
+
+            for contact in contacts:
+                response = bytes("{:<12}{}\n".format('name:', contact['name']), 'utf-8')
+                response += bytes("{:<12}{}\n".format('email:', RwhoisRequest.disclosed), 'utf-8')
+                response += bytes("{:<12}{}\n".format('changed:', contact['changed'].replace("T", " ").replace("+", " +")),
+                                  'utf-8')
+            return response
+
         def make(domain_name,cur_thread):
             thread_name = str(cur_thread or cur_thread.name)
 
-            _logger.debug('RwhoisRequest.make:')
-            _logger.debug(domain_name)
+            _logger.debug('RwhoisRequest.make: {}'.format(domain_name))
 
             rwhois_response = RwhoisRequest.get(domain_name)
             # rwhois_response = rwhois_api.domain.v2(domain_name, body=None, params={'access_token': 'valid-token'}, headers={})
@@ -94,26 +104,18 @@ class RwhoisRequest():
             if sisu['registrant_kind'] == "org":
                 response += bytes("{:<12}{}\n".format('org id:', sisu['registrant_reg_no']), 'utf-8')
                 response += bytes("{:<12}{}\n".format('country:', sisu['registrant_ident_country_code']), 'utf-8')
-            response += bytes("{:<12}{}\n".format('email:', sisu['disclose']), 'utf-8')
+            response += bytes("{:<12}{}\n".format('email:', RwhoisRequest.disclosed), 'utf-8')
             response += bytes(
                 "{:<12}{}\n".format('changed:', sisu['registrant_changed'].replace("T", " ").replace("+", " +")),
                 'utf-8')
 
             # Administrative contacts
             response += bytes("\n{}\n".format('Administrative contact:'), 'utf-8')
-            for contact in sisu['admin_contacts']:
-                response += bytes("{:<12}{}\n".format('name:', contact['name']), 'utf-8')
-                response += bytes("{:<12}{}\n".format('email:', sisu['disclose']), 'utf-8')
-                response += bytes("{:<12}{}\n".format('changed:', contact['changed'].replace("T", " ").replace("+", " +")),
-                                  'utf-8')
+            response += RwhoisRequest.contacts(sisu['admin_contacts'])
 
             # Tech contacs
             response += bytes("\n{}\n".format('Technical contact:'), 'utf-8')
-            for contact in sisu['tech_contacts']:
-                response += bytes("{:<12}{}\n".format('name:', contact['name']), 'utf-8')
-                response += bytes("{:<12}{}\n".format('email:', sisu['disclose']), 'utf-8')
-                response += bytes("{:<12}{}\n".format('changed:', contact['changed'].replace("T", " ").replace("+", " +")),
-                                  'utf-8')
+            response += RwhoisRequest.contacts(sisu['tech_contacts'])
 
             # Registrar
             response += bytes("\n{}\n".format('Registrar:'), 'utf-8')
