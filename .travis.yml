@@ -4,6 +4,11 @@
 
 sudo: false
 language: python
+python:
+  - "3.3"
+  - "3.4"
+  - "3.5"
+  - "3.6"
 virtualenv:
   system_site_packages: true
 env:
