@@ -17,8 +17,9 @@ entry_points = """
 # script_name = whoisd_rwhois.module:function
 # For example:
 # fibonacci = whoisd_rwhois.skeleton:run
+whoisd = whoisd_rwhois.whoisd:run
 """
-
+whoisd = whoisd_rwhois.whoisd:run
 
 def setup_package():
     needs_sphinx = {'build_sphinx', 'upload_docs'}.intersection(sys.argv)

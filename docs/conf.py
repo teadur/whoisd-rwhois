@@ -74,7 +74,7 @@ copyright = u'2018, Georg Kahest'
 # built documents.
 #
 # The short X.Y version.
-version = ''  # Is set by calling `setup.py docs`
+version = '0.1'  # Is set by calling `setup.py docs`
 # The full version, including alpha/beta/rc tags.
 release = ''  # Is set by calling `setup.py docs`
 

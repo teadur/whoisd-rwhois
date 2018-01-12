@@ -1,21 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-This is a skeleton file that can serve as a starting point for a Python
-console script. To run this script uncomment the following line in the
-entry_points section in setup.cfg:
+Unix whois daemon with restful-whois backend.
 
-    console_scripts =
-     fibonacci = whoisd_rwhois.skeleton:run
-
-Then run `python setup.py install` which will install the command `fibonacci`
-inside your current environment.
-Besides console scripts, the header (i.e. until _logger...) of this file can
-also be used as template for Python modules.
-
-Note: This skeleton file can be safely removed if not needed!
 """
-from __future__ import division, print_function, absolute_import
+# from __future__ import division, print_function, absolute_import
 
 import argparse
 import sys
@@ -169,8 +158,7 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
         # convert input to utf-8 string
         data_str = str(data, 'utf-8')
         cur_thread = threading.current_thread()
-        _logger.debug("thread: ")
-        _logger.debug(cur_thread)
+        _logger.debug("thread:  {}".format(cur_thread))
 
 
         response = RwhoisRequest.make(data_str,cur_thread)
@@ -260,23 +248,6 @@ def client(ip, port, message):
     finally:
         sock.close()
 
-
-def fib(n):
-    """Fibonacci example function
-
-    Args:
-      n (int): integer
-
-    Returns:
-      int: n-th Fibonacci number
-    """
-    assert n > 0
-    a, b = 1, 1
-    for i in range(n-1):
-        a, b = b, a+b
-    return a
-
-
 def parse_args(args):
     """Parse command line parameters
 
@@ -287,14 +258,14 @@ def parse_args(args):
       :obj:`argparse.Namespace`: command line parameters namespace
     """
     parser = argparse.ArgumentParser(
-        description="Just a Fibonnaci demonstration")
+        description="Unix Whois Daemon for Restful Whois backend")
     parser.add_argument(
         '--version',
         action='version',
         version='whoisd-rwhois {ver}'.format(ver=__version__))
     parser.add_argument(
-        dest="n",
-        help="n-th Fibonacci number",
+        dest="p",
+        help="Port to listen on",
         type=int,
         metavar="INT")
     parser.add_argument(
@@ -334,11 +305,12 @@ def main(args):
     args = parse_args(args)
     setup_logging(args.loglevel)
     _logger.debug("Starting crazy calculations...")
-    print("The {}-th Fibonacci number is {}".format(args.n, fib(args.n)))
-    HOST, PORT = "localhost", 9999
+    # print("The {}-th Fibonacci number is {}".format(args.n, fib(args.n)))
+    HOST, PORT = "localhost", args.p
 
     server = ThreadedTCPServer((HOST, PORT), ThreadedTCPRequestHandler)
     ip, port = server.server_address
+    server.address_family=(socket.AF_INET6)
 
     # Start a thread with the server -- that thread will then start one
     # more thread for each request
