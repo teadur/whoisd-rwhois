@@ -10,7 +10,7 @@ python:
   - "3.5"
   - "3.6"
 virtualenv:
-  system_site_packages: true
+  system_site_packages: false
 env:
   matrix:
     - DISTRIB="conda" PYTHON_VERSION="3.3" COVERAGE="false"
