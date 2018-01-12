@@ -1,3 +1,12 @@
+.. image:: https://travis-ci.org/teadur/whoisd-rwhois.svg?branch=master
+    :target: https://travis-ci.org/teadur/whoisd-rwhois   
+.. image:: https://api.codeclimate.com/v1/badges/f2f9b7fe3f0367b860a7/maintainability
+   :target: https://codeclimate.com/github/teadur/whoisd-rwhois/maintainability
+   :alt: Maintainability
+.. image:: https://api.codeclimate.com/v1/badges/f2f9b7fe3f0367b860a7/test_coverage
+   :target: https://codeclimate.com/github/teadur/whoisd-rwhois/test_coverage
+   :alt: Test Coverage
+
 =============
 whoisd-rwhois
 =============
