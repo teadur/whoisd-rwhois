@@ -35,15 +35,10 @@ class MetricData():
     test_request = 0
 
 class RwhoisRequest():
-        
-        kind = 'canine'         # class variable shared by all instances
 
         def __init__(self, name):
-            self.name = name    # instance variable unique to each instance
-                        
-            _logger.debug('RwhoisRequest:')
-            _logger.debug(self.name)
-
+            self.name = name
+            _logger.debug("RwhoisRequest: init {}".format(self.name))
 
 
         def get(domain_name):
@@ -173,13 +168,6 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
 
 
         response = RwhoisRequest.make(data_str,cur_thread)
-
-        # try:
-        #    rwhois_response = rwhois_api.domain.whois(data_str, body=None, params={}, headers={})
-        # except Exception as e:
-        #    z = e  # representation: "<exceptions.ZeroDivisionError instance at 0x817426c>"
-        #    _logger.debug(z)  # output: "integer division or modulo by zero"
-
         # Send response
         self.request.sendall(response)
 
@@ -248,17 +236,6 @@ class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
         self.logger.debug('shutdown()')
         return socketserver.TCPServer.shutdown(self)
 
-
-def client(ip, port, message):
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect((ip, port))
-    try:
-        sock.sendall(bytes(message, 'ascii'))
-        response = str(sock.recv(1024), 'ascii')
-        print("Received: {}".format(response))
-    finally:
-        sock.close()
-
 def parse_args(args):
     """Parse command line parameters
 
@@ -315,8 +292,6 @@ def main(args):
     """
     args = parse_args(args)
     setup_logging(args.loglevel)
-    _logger.debug("Starting crazy calculations...")
-    # print("The {}-th Fibonacci number is {}".format(args.n, fib(args.n)))
     HOST, PORT = "localhost", args.p
 
     server = ThreadedTCPServer((HOST, PORT), ThreadedTCPRequestHandler)
@@ -330,10 +305,6 @@ def main(args):
     server_thread.daemon = True
     server_thread.start()
     print("Server loop running in thread:", server_thread.name)
-
-    # client(ip, port, "Hello World 1")
-    # client(ip, port, "Hello World 2")
-    # client(ip, port, "Hello World 3")
 
     # start server
     server.serve_forever()
