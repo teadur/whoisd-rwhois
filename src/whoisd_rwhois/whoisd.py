@@ -42,6 +42,7 @@ class RwhoisRequest():
         debug_ip = 0
         debug_src = ""
         ipversion = socket.AF_INET
+        api_url = "https://rwhois.internet.ee/"
 
         def __init__(self, name):
             self.name = name
@@ -52,7 +53,7 @@ class RwhoisRequest():
 
             default_params = {}
             rwhois_api = API(
-                api_root_url='https://rwhois.internet.ee/', params=default_params,
+                api_root_url=RwhoisRequest.api_url, params=default_params,
                 json_encode_body=True
             )
 
@@ -312,6 +313,13 @@ def parse_args(args):
         metavar="127.0.0.1",
         default="127.0.0.1")
     parser.add_argument(
+        '-u',
+        '--url',
+        dest="url",
+        help="Backend API url",
+        metavar="https://rwhois.internet.ee/",
+        default="https://rwhois.internet.ee/")
+    parser.add_argument(
         '-d',
         '--debug',
         dest="d",
@@ -356,6 +364,7 @@ def main(args):
     setup_logging(args.loglevel)
     RwhoisRequest.debug_src=args.d
     RwhoisRequest.ipversion=args.ip
+    RwhoisRequest.api_url=args.url
     HOST, PORT = args.h, args.p
     server = ThreadedTCPServer((HOST, PORT), ThreadedTCPRequestHandler)
     # ip, port = server.server_address
