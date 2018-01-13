@@ -41,6 +41,7 @@ class RwhoisRequest():
 
         debug_ip = 0
         debug_src = ""
+        ipversion = socket.AF_INET
 
         def __init__(self, name):
             self.name = name
@@ -191,9 +192,13 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
         self.request.sendall(response)
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
+
     def __init__(self, server_address,
                  handler_class=ThreadedTCPRequestHandler,
                  ):
+        self.allow_reuse_address = True
+        self.address_family = RwhoisRequest.ipversion
+        self.request_queue_size=50
         self.logger = logging.getLogger('ThreadedTCPServer')
         self.logger.debug('__init__')
         socketserver.TCPServer.__init__(self, server_address,
@@ -283,18 +288,35 @@ def parse_args(args):
         help="Port to listen on",
         type=int,
         metavar="INT")
+
+    parser.add_argument(
+        '-4',
+        dest="ip",
+        help="Bind to IPv4",
+        action='store_const',
+        const=socket.AF_INET)
+
+    parser.add_argument(
+        '-6',
+        dest="ip",
+        help="Bind to IPv6",
+        action='store_const',
+        const=socket.AF_INET6)
+
     parser.add_argument(
         '-l',
         '--listen',
         '--host',
         dest="h",
         help="host to listen on",
+        metavar="127.0.0.1",
         default="127.0.0.1")
     parser.add_argument(
         '-d',
         '--debug',
         dest="d",
         help="debug ip",
+        metavar="127.0.0.1",
         default="127.0.0.1")
     parser.add_argument(
         '-v',
@@ -333,24 +355,19 @@ def main(args):
     args = parse_args(args)
     setup_logging(args.loglevel)
     RwhoisRequest.debug_src=args.d
+    RwhoisRequest.ipversion=args.ip
     HOST, PORT = args.h, args.p
-
     server = ThreadedTCPServer((HOST, PORT), ThreadedTCPRequestHandler)
-    ip, port = server.server_address
-    server.address_family=(socket.AF_INET6)
+    # ip, port = server.server_address
+    # server.address_family=(socket.AF_INET6)
 
     # Start a thread with the server -- that thread will then start one
     # more thread for each request
-    server_thread = threading.Thread(target=server.serve_forever)
+    server_thread = threading.Thread(target=server.serve_forever())
     # Exit the server thread when the main thread terminates
     server_thread.daemon = True
     server_thread.start()
     print("Server loop running in thread:", server_thread.name)
-
-    # start server
-    server.serve_forever()
-    # rerver.server_activate()
-
 
     _logger.info("Script ends here")
 
